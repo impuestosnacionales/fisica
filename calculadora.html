@@ -6,6 +6,7 @@
   <title>Calculadora de Tensegridad</title>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <style>
     body {
       margin: 0;
@@ -125,6 +126,7 @@
   </div>
 
   <script>
+    let controls;
     let scene, camera, renderer, holdInterval;
     let angleHorizontal = 0, angleVertical = 0;
 
@@ -154,7 +156,7 @@
       `;
 
       abrirModal();
-      document.getElementById("controls").style.display = "flex";
+      document.getElementById("controls").style.display = "none";
       initThreeScene(angDeg, numCadenas);
     }
 
@@ -166,6 +168,31 @@
       document.getElementById("modal").style.display = "none";
     }
 
+    function crearEtiqueta(texto, color = "black") {
+      const canvas = document.createElement('canvas');
+      const size = 128; // Suficiente para una letra clara
+      canvas.width = size;
+      canvas.height = size;
+
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, size, size);
+
+      ctx.fillStyle = color;
+      ctx.font = 'bold 64px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(texto, size / 2, size / 2);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true; // ¡IMPORTANTE!
+
+      const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+      const sprite = new THREE.Sprite(material);
+      sprite.scale.set(0.5, 0.5, 0.5); // tamaño ajustable
+
+      return sprite;
+    }
+
     function initThreeScene(angulo, n) {
       const canvas = document.getElementById("threeCanvas");
       scene = new THREE.Scene();
@@ -175,6 +202,13 @@
       renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
       renderer.setSize(canvas.clientWidth, 400);
       scene.add(new THREE.AmbientLight(0xffffff));
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.screenSpacePanning = false;
+      controls.minDistance = 2;
+      controls.maxDistance = 10;
 
       // Bases
       const baseMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50 });
@@ -205,6 +239,47 @@
         scene.add(line);
       }
 
+      // 🔴 Dibujar vectores de tensión (flechas en cada cadena)
+      for (let i = 0; i < n; i++) {
+        const angle = (i / n) * Math.PI * 2;
+        const x = radius * Math.cos(angle);
+        const z = radius * Math.sin(angle);
+
+        const topPoint = new THREE.Vector3(x, offsetY, z);
+        const bottomPoint = new THREE.Vector3(-x, -offsetY, -z); // punto opuesto
+
+        // Dirección del vector de tensión
+        const dir = new THREE.Vector3().subVectors(topPoint, bottomPoint).normalize();
+        const length = topPoint.distanceTo(bottomPoint) * 0.7;
+        // Flecha de tensión
+        const arrow = new THREE.ArrowHelper(dir, bottomPoint, length, 0xff0000, 0.15, 0.08);
+        scene.add(arrow);
+        // Etiqueta "T"
+        const etiquetaT = crearEtiqueta("T", "red");
+        const medio = new THREE.Vector3().addVectors(bottomPoint, topPoint).multiplyScalar(0.5);
+        // Desplaza un poco la etiqueta para que no se superponga con la flecha
+        const offset = dir.clone().multiplyScalar(0.2);
+        etiquetaT.position.copy(medio.add(offset));
+        etiquetaT.renderOrder = 1; // para que esté al frente
+        etiquetaT.material.depthTest = false;
+        scene.add(etiquetaT);
+      }
+      // 🔵 Flecha del vector peso (centrado)
+      const pesoVec = new THREE.ArrowHelper(
+        new THREE.Vector3(0, -1, 0),
+        new THREE.Vector3(0, 1.1, 0),
+        1.2,
+        0x0000ff,
+        0.2,
+        0.1
+      );
+      scene.add(pesoVec);
+
+      const etiquetaP = crearEtiqueta("P", "blue");
+      etiquetaP.position.set(0, 0.4, 0);
+      scene.add(etiquetaP);
+
+
       // 🟤 Dibujar Barras de Compresión (verticales)
       const barMat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d });
       for (let i = 0; i < n; i++) {
@@ -219,22 +294,12 @@
         scene.add(bar);
       }
 
-      // 🔵 Flecha de peso
-      const arrow = new THREE.ArrowHelper(
-        new THREE.Vector3(0, -1, 0),
-        new THREE.Vector3(0, 1.1, 0),
-        1.5,
-        0x0000ff,
-        0.2,
-        0.1
-      );
-      scene.add(arrow);
-
       animate();
     }
 
     function animate() {
       requestAnimationFrame(animate);
+      controls.update(); 
       renderer.render(scene, camera);
     }
 
