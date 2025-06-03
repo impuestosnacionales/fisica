@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calculadora de Tensegridad</title>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #ecf0f1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      color: #2c3e50;
+    }
+    .container {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      max-width: 1100px;
+      width: 95%;
+      display: flex;
+      flex-direction: row;
+      gap: 30px;
+      justify-content: center;
+    }
+    .form-section {
+      flex: 1;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #34495e;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-top: 15px;
+      font-size: 14px;
+      color: #2c3e50;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      margin-top: 5px;
+      border: 1px solid #bdc3c7;
+      border-radius: 6px;
+      font-size: 14px;
+      background: #fdfefe;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      cursor: pointer;
+      background-color: #2980b9;
+      color: #fff;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: #2471a3;
+    }
+    #threeCanvas {
+      flex: 1;
+      display: block;
+    }
+    #modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: #ffffff;
+      padding: 25px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 480px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      text-align: left;
+    }
+    .modal-content h3 {
+      margin-top: 0;
+      color: #2c3e50;
+    }
+    .modal-content button {
+      background-color: #c0392b;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+    .modal-content button:hover {
+      background-color: #922b21;
+    }
+    @media(max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+    }
+    .controls {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.controls button {
+  background-color: #2980b9;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  font-size: 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  min-width: 50px;
+}
+
+.controls button:hover {
+  background-color: #1f6390;
+}
+
+    .controls div {
+      display: flex;
+      gap: 5px;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="form-section">
+      <h2>Calculadora de Tensión</h2>
+      <label for="peso">Peso (N)</label>
+      <input type="number" id="peso">
+      <label for="angulo1">Ángulo izquierdo (°)</label>
+      <input type="number" id="angulo1">
+      <label for="angulo2">Ángulo derecho (°)</label>
+      <input type="number" id="angulo2">
+      <button onclick="iniciarCalculo()">Calcular</button>
+    </div>
+    <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+      <canvas id="threeCanvas"></canvas>
+      <div class="controls" id="controls" style="display: none;">
+        <button onmousedown="startHold('arriba')" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchstart="startHold('arriba')" ontouchend="stopHold()">↑</button>
+        <button onmousedown="startHold('izquierda')" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchstart="startHold('izquierda')" ontouchend="stopHold()">←</button>
+        <button onmousedown="startHold('derecha')" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchstart="startHold('derecha')" ontouchend="stopHold()">→</button>
+        <button onmousedown="startHold('abajo')" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchstart="startHold('abajo')" ontouchend="stopHold()">↓</button>
+      </div>      
+    </div>
+  </div>
+  <!-- Modal para mostrar cálculos -->
+  <div id="modal">
+    <div class="modal-content">
+      <h3>Detalles del cálculo</h3>
+      <div id="calculoResultado"></div>
+      <button onclick="cerrarModal()">Cerrar</button>
+    </div>
+  </div>
+
+  <script>
+    let scene, camera, renderer;
+    function iniciarCalculo() {
+      const peso = parseFloat(document.getElementById("peso").value);
+      const ang1Deg = parseFloat(document.getElementById("angulo1").value);
+      const ang2Deg = parseFloat(document.getElementById("angulo2").value);
+
+      if (!peso || !ang1Deg || !ang2Deg) {
+        Swal.fire("Error", "Por favor complete todos los campos.", "warning");
+        return;
+      }
+
+      const ang1 = ang1Deg * Math.PI / 180;
+      const ang2 = ang2Deg * Math.PI / 180;
+
+      const sumaSenos = Math.sin(ang1 + ang2);
+      const T1 = (peso * Math.sin(ang2)) / sumaSenos;
+      const T2 = (peso * Math.sin(ang1)) / sumaSenos;
+
+      
+      document.getElementById("calculoResultado").innerHTML = `
+        <p><strong>Datos de entrada:</strong></p>
+        <ul>
+          <li>Peso = ${peso} N</li>
+          <li>Ángulo izquierdo = ${ang1Deg}°</li>
+          <li>Ángulo derecho = ${ang2Deg}°</li>
+        </ul>
+        <p><strong>Cálculos:</strong></p>
+        <ul>
+          <li>Suma de senos: sin(${ang1Deg}° + ${ang2Deg}°) = ${sumaSenos.toFixed(4)}</li>
+          <li>T1 = (peso × sin(ángulo derecho)) / suma_senos = ${T1.toFixed(2)} N</li>
+          <li>T2 = (peso × sin(ángulo izquierdo)) / suma_senos = ${T2.toFixed(2)} N</li>
+        </ul>
+      `;
+      abrirModal();
+      document.getElementById("controls").style.display = "flex"; 
+      initThreeScene((ang1 + ang2) * 90 / Math.PI);
+    }
+
+    function abrirModal() {
+      document.getElementById("modal").style.display = "flex";
+    }
+
+    function cerrarModal() {
+      document.getElementById("modal").style.display = "none";
+    }
+
+    function initThreeScene(avgDeg) {
+      const canvas = document.getElementById("threeCanvas");
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / 400, 0.1, 1000);
+      camera.position.set(0, 2, 5);
+
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
+      renderer.setSize(canvas.clientWidth, 400);
+
+      const light = new THREE.AmbientLight(0xffffff);
+      scene.add(light);
+
+      const base = new THREE.Mesh(
+        new THREE.BoxGeometry(2, 0.1, 2),
+        new THREE.MeshStandardMaterial({ color: 0x34495e })
+      );
+      base.position.y = -1;
+      scene.add(base);
+
+      const top = new THREE.Mesh(
+        new THREE.BoxGeometry(2, 0.1, 2),
+        new THREE.MeshStandardMaterial({ color: 0x34495e })
+      );
+      top.position.y = 1;
+      top.rotation.z = THREE.MathUtils.degToRad(avgDeg / 2);
+      scene.add(top);
+
+      // Cables en cruz
+      const cableMaterial = new THREE.LineBasicMaterial({ color: 0xe74c3c });
+      const cables = [
+        [[-1, -1, -1], [1, 1, 1]],
+        [[1, -1, -1], [-1, 1, 1]],
+        [[-1, -1, 1], [1, 1, -1]],
+        [[1, -1, 1], [-1, 1, -1]]
+      ];
+
+      cables.forEach(pair => {
+        const points = pair.map(p => new THREE.Vector3(...p));
+        const geo = new THREE.BufferGeometry().setFromPoints(points);
+        const line = new THREE.Line(geo, cableMaterial);
+        scene.add(line);
+      });
+
+      animate();
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+    let angleHorizontal = 0;
+    let angleVertical = 0;
+
+    function rotarVista(direccion) {
+      const radius = 5;
+      if (direccion === "izquierda") angleHorizontal -= 0.1;
+      if (direccion === "derecha") angleHorizontal += 0.1;
+      if (direccion === "arriba") angleVertical = Math.min(angleVertical + 0.1, Math.PI / 2.5);
+      if (direccion === "abajo") angleVertical = Math.max(angleVertical - 0.1, -Math.PI / 2.5);
+
+      const x = radius * Math.sin(angleHorizontal) * Math.cos(angleVertical);
+      const y = radius * Math.sin(angleVertical);
+      const z = radius * Math.cos(angleHorizontal) * Math.cos(angleVertical);
+
+      camera.position.set(x, y, z);
+      camera.lookAt(0, 0, 0);
+    }
+    let holdInterval = null;
+
+    function startHold(direccion) {
+      if (holdInterval) return;
+      holdInterval = setInterval(() => rotarVista(direccion), 60); 
+    }
+
+    function stopHold() {
+      clearInterval(holdInterval);
+      holdInterval = null;
+    }
+  </script>
+</body>
+</html>
