@@ -184,39 +184,37 @@
 
       const top = new THREE.Mesh(new THREE.BoxGeometry(2, 0.1, 2), baseMat);
       top.position.y = 1;
-      top.rotation.z = THREE.MathUtils.degToRad(angulo / 3); // estética
+      top.rotation.z = THREE.MathUtils.degToRad(angulo / 3); // pequeña inclinación
       scene.add(top);
 
-      const h = 2; // altura total entre bases
-      const thetaRad = angulo * Math.PI / 180;
-      const dx = h / (2 * Math.tan(thetaRad)); // desplazamiento lateral
-      const radius = Math.min(0.9, dx); // limitar el radio para que no se salga
+      const radius = 0.9;
+      const offsetY = 1;
 
-      // 🔴 Cadenas inclinadas, en cruz con inclinación según el ángulo
+      // 🔴 Dibujar Cadenas Inclinadas (en cruz)
       const cableMat = new THREE.LineBasicMaterial({ color: 0xe74c3c });
       for (let i = 0; i < n; i++) {
-        const a = (i / n) * Math.PI * 2;
-        const dxA = radius * Math.cos(a);
-        const dzA = radius * Math.sin(a);
-
-        const topPoint = new THREE.Vector3(dxA, 1, dzA);
-        const bottomPoint = new THREE.Vector3(-dxA, -1, -dzA); // opuesto
-
-        const geo = new THREE.BufferGeometry().setFromPoints([bottomPoint, topPoint]);
-        scene.add(new THREE.Line(geo, cableMat));
-      }
-
-      // 🟤 Barras de compresión
-      const barMat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d });
-      for (let i = 0; i < n; i++) {
-        const angle = (i / n) * Math.PI * 2 + Math.PI / n;
+        const angle = (i / n) * Math.PI * 2;
         const x = radius * Math.cos(angle);
         const z = radius * Math.sin(angle);
 
-        const bar = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.05, 0.05, h, 8),
-          barMat
-        );
+        const topPoint = new THREE.Vector3(x, offsetY, z);
+        const bottomPoint = new THREE.Vector3(-x, -offsetY, -z); // punto opuesto
+
+        const geometry = new THREE.BufferGeometry().setFromPoints([bottomPoint, topPoint]);
+        const line = new THREE.Line(geometry, cableMat);
+        scene.add(line);
+      }
+
+      // 🟤 Dibujar Barras de Compresión (verticales)
+      const barMat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d });
+      for (let i = 0; i < n; i++) {
+        const angle = (i / n) * Math.PI * 2;
+        const x = radius * Math.cos(angle + Math.PI / n);  // ligeramente desplazadas respecto a las cadenas
+        const z = radius * Math.sin(angle + Math.PI / n);
+
+        const height = 2;
+        const barGeo = new THREE.CylinderGeometry(0.05, 0.05, height, 8);
+        const bar = new THREE.Mesh(barGeo, barMat);
         bar.position.set(x, 0, z);
         scene.add(bar);
       }
