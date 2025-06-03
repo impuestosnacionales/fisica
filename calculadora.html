@@ -7,9 +7,6 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
-    * {
-      box-sizing: border-box;
-    }
     body {
       margin: 0;
       padding: 0;
@@ -19,62 +16,61 @@
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      color: #2c3e50;
     }
     .container {
-      background: #ffffff;
+      background: #fff;
       padding: 30px;
       border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       max-width: 1100px;
       width: 95%;
       display: flex;
-      flex-direction: row;
       gap: 30px;
-      justify-content: center;
+      flex-wrap: wrap;
     }
     .form-section {
       flex: 1;
-    }
-    h2 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #34495e;
-    }
-    label {
-      display: block;
-      font-weight: 600;
-      margin-top: 15px;
-      font-size: 14px;
-      color: #2c3e50;
+      min-width: 280px;
     }
     input[type="number"] {
       width: 100%;
-      padding: 10px 12px;
+      padding: 10px;
       margin-top: 5px;
       border: 1px solid #bdc3c7;
-      border-radius: 6px;
-      font-size: 14px;
-      background: #fdfefe;
+      border-radius: 5px;
+    }
+    label {
+      font-weight: bold;
+      margin-top: 15px;
+      display: block;
     }
     button {
       width: 100%;
       padding: 12px;
       margin-top: 20px;
       border: none;
-      border-radius: 6px;
-      font-size: 15px;
-      cursor: pointer;
+      border-radius: 5px;
       background-color: #2980b9;
-      color: #fff;
-      transition: background-color 0.2s ease;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
     }
     button:hover {
       background-color: #2471a3;
     }
-    #threeCanvas {
+    canvas {
       flex: 1;
-      display: block;
+      min-width: 300px;
+      max-width: 600px;
+    }
+    .controls {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    .controls button {
+      padding: 8px 14px;
     }
     #modal {
       display: none;
@@ -84,93 +80,42 @@
       background-color: rgba(0,0,0,0.5);
       justify-content: center;
       align-items: center;
-      z-index: 1000;
     }
     .modal-content {
-      background: #ffffff;
-      padding: 25px;
+      background: #fff;
+      padding: 20px;
       border-radius: 8px;
-      width: 90%;
-      max-width: 480px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-      text-align: left;
-    }
-    .modal-content h3 {
-      margin-top: 0;
-      color: #2c3e50;
+      max-width: 500px;
     }
     .modal-content button {
       background-color: #c0392b;
-      color: #fff;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 5px;
-      cursor: pointer;
       margin-top: 15px;
     }
-    .modal-content button:hover {
-      background-color: #922b21;
-    }
-    @media(max-width: 768px) {
-      .container {
-        flex-direction: column;
-      }
-    }
-    .controls {
-  margin-top: 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: nowrap;
-}
-
-.controls button {
-  background-color: #2980b9;
-  color: white;
-  border: none;
-  padding: 10px 18px;
-  font-size: 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  min-width: 50px;
-}
-
-.controls button:hover {
-  background-color: #1f6390;
-}
-
-    .controls div {
-      display: flex;
-      gap: 5px;
-    }
-
   </style>
 </head>
 <body>
   <div class="container">
     <div class="form-section">
       <h2>Calculadora de Tensión</h2>
-      <label for="peso">Peso (N)</label>
-      <input type="number" id="peso">
-      <label for="angulo1">Ángulo izquierdo (°)</label>
-      <input type="number" id="angulo1">
-      <label for="angulo2">Ángulo derecho (°)</label>
-      <input type="number" id="angulo2">
+      <label for="masa">Masa del usuario (kg)</label>
+      <input type="number" id="masa" placeholder="Ej. 70">
+      <label for="angulo">Ángulo de inclinación (°)</label>
+      <input type="number" id="angulo" placeholder="Ej. 45">
+      <label for="cadenas">Número de cadenas inclinadas</label>
+      <input type="number" id="cadenas" placeholder="Ej. 4" value="4" min="1">
       <button onclick="iniciarCalculo()">Calcular</button>
     </div>
     <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
       <canvas id="threeCanvas"></canvas>
       <div class="controls" id="controls" style="display: none;">
-        <button onmousedown="startHold('arriba')" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchstart="startHold('arriba')" ontouchend="stopHold()">↑</button>
-        <button onmousedown="startHold('izquierda')" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchstart="startHold('izquierda')" ontouchend="stopHold()">←</button>
-        <button onmousedown="startHold('derecha')" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchstart="startHold('derecha')" ontouchend="stopHold()">→</button>
-        <button onmousedown="startHold('abajo')" onmouseup="stopHold()" onmouseleave="stopHold()" ontouchstart="startHold('abajo')" ontouchend="stopHold()">↓</button>
-      </div>      
+        <button onmousedown="startHold('arriba')" onmouseup="stopHold()" onmouseleave="stopHold()">↑</button>
+        <button onmousedown="startHold('izquierda')" onmouseup="stopHold()" onmouseleave="stopHold()">←</button>
+        <button onmousedown="startHold('derecha')" onmouseup="stopHold()" onmouseleave="stopHold()">→</button>
+        <button onmousedown="startHold('abajo')" onmouseup="stopHold()" onmouseleave="stopHold()">↓</button>
+      </div>
     </div>
   </div>
-  <!-- Modal para mostrar cálculos -->
+
   <div id="modal">
     <div class="modal-content">
       <h3>Detalles del cálculo</h3>
@@ -180,42 +125,37 @@
   </div>
 
   <script>
-    let scene, camera, renderer;
-    function iniciarCalculo() {
-      const peso = parseFloat(document.getElementById("peso").value);
-      const ang1Deg = parseFloat(document.getElementById("angulo1").value);
-      const ang2Deg = parseFloat(document.getElementById("angulo2").value);
+    let scene, camera, renderer, holdInterval;
+    let angleHorizontal = 0, angleVertical = 0;
 
-      if (!peso || !ang1Deg || !ang2Deg) {
-        Swal.fire("Error", "Por favor complete todos los campos.", "warning");
+    function iniciarCalculo() {
+      const masa = parseFloat(document.getElementById("masa").value);
+      const angDeg = parseFloat(document.getElementById("angulo").value);
+      const numCadenas = parseInt(document.getElementById("cadenas").value);
+      const g = 9.81;
+
+      if (!masa || !angDeg || !numCadenas || angDeg <= 0 || angDeg >= 90) {
+        Swal.fire("Error", "Complete todos los campos correctamente. El ángulo debe estar entre 1° y 89°.", "warning");
         return;
       }
 
-      const ang1 = ang1Deg * Math.PI / 180;
-      const ang2 = ang2Deg * Math.PI / 180;
+      const peso = masa * g;
+      const angRad = angDeg * Math.PI / 180;
+      const T = peso / (numCadenas * Math.sin(angRad));
 
-      const sumaSenos = Math.sin(ang1 + ang2);
-      const T1 = (peso * Math.sin(ang2)) / sumaSenos;
-      const T2 = (peso * Math.sin(ang1)) / sumaSenos;
-
-      
       document.getElementById("calculoResultado").innerHTML = `
-        <p><strong>Datos de entrada:</strong></p>
         <ul>
-          <li>Peso = ${peso} N</li>
-          <li>Ángulo izquierdo = ${ang1Deg}°</li>
-          <li>Ángulo derecho = ${ang2Deg}°</li>
-        </ul>
-        <p><strong>Cálculos:</strong></p>
-        <ul>
-          <li>Suma de senos: sin(${ang1Deg}° + ${ang2Deg}°) = ${sumaSenos.toFixed(4)}</li>
-          <li>T1 = (peso × sin(ángulo derecho)) / suma_senos = ${T1.toFixed(2)} N</li>
-          <li>T2 = (peso × sin(ángulo izquierdo)) / suma_senos = ${T2.toFixed(2)} N</li>
+          <li><strong>Masa:</strong> ${masa} kg</li>
+          <li><strong>Peso (P = m × g):</strong> ${peso.toFixed(2)} N</li>
+          <li><strong>Ángulo de inclinación:</strong> ${angDeg}°</li>
+          <li><strong>Número de cadenas:</strong> ${numCadenas}</li>
+          <li><strong>Tensión por cadena:</strong> <strong>${T.toFixed(2)} N</strong></li>
         </ul>
       `;
+
       abrirModal();
-      document.getElementById("controls").style.display = "flex"; 
-      initThreeScene((ang1 + ang2) * 90 / Math.PI);
+      document.getElementById("controls").style.display = "flex";
+      initThreeScene(angDeg, numCadenas);
     }
 
     function abrirModal() {
@@ -226,7 +166,7 @@
       document.getElementById("modal").style.display = "none";
     }
 
-    function initThreeScene(avgDeg) {
+    function initThreeScene(angulo, n) {
       const canvas = document.getElementById("threeCanvas");
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / 400, 0.1, 1000);
@@ -234,40 +174,63 @@
 
       renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true });
       renderer.setSize(canvas.clientWidth, 400);
+      scene.add(new THREE.AmbientLight(0xffffff));
 
-      const light = new THREE.AmbientLight(0xffffff);
-      scene.add(light);
-
-      const base = new THREE.Mesh(
-        new THREE.BoxGeometry(2, 0.1, 2),
-        new THREE.MeshStandardMaterial({ color: 0x34495e })
-      );
+      // Bases
+      const baseMat = new THREE.MeshStandardMaterial({ color: 0x2c3e50 });
+      const base = new THREE.Mesh(new THREE.BoxGeometry(2, 0.1, 2), baseMat);
       base.position.y = -1;
       scene.add(base);
 
-      const top = new THREE.Mesh(
-        new THREE.BoxGeometry(2, 0.1, 2),
-        new THREE.MeshStandardMaterial({ color: 0x34495e })
-      );
+      const top = new THREE.Mesh(new THREE.BoxGeometry(2, 0.1, 2), baseMat);
       top.position.y = 1;
-      top.rotation.z = THREE.MathUtils.degToRad(avgDeg / 2);
+      top.rotation.z = THREE.MathUtils.degToRad(angulo / 3); // estética
       scene.add(top);
 
-      // Cables en cruz
-      const cableMaterial = new THREE.LineBasicMaterial({ color: 0xe74c3c });
-      const cables = [
-        [[-1, -1, -1], [1, 1, 1]],
-        [[1, -1, -1], [-1, 1, 1]],
-        [[-1, -1, 1], [1, 1, -1]],
-        [[1, -1, 1], [-1, 1, -1]]
-      ];
+      const h = 2; // altura total entre bases
+      const thetaRad = angulo * Math.PI / 180;
+      const dx = h / (2 * Math.tan(thetaRad)); // desplazamiento lateral
+      const radius = Math.min(0.9, dx); // limitar el radio para que no se salga
 
-      cables.forEach(pair => {
-        const points = pair.map(p => new THREE.Vector3(...p));
-        const geo = new THREE.BufferGeometry().setFromPoints(points);
-        const line = new THREE.Line(geo, cableMaterial);
-        scene.add(line);
-      });
+      // 🔴 Cadenas inclinadas, en cruz con inclinación según el ángulo
+      const cableMat = new THREE.LineBasicMaterial({ color: 0xe74c3c });
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        const dxA = radius * Math.cos(a);
+        const dzA = radius * Math.sin(a);
+
+        const topPoint = new THREE.Vector3(dxA, 1, dzA);
+        const bottomPoint = new THREE.Vector3(-dxA, -1, -dzA); // opuesto
+
+        const geo = new THREE.BufferGeometry().setFromPoints([bottomPoint, topPoint]);
+        scene.add(new THREE.Line(geo, cableMat));
+      }
+
+      // 🟤 Barras de compresión
+      const barMat = new THREE.MeshStandardMaterial({ color: 0x7f8c8d });
+      for (let i = 0; i < n; i++) {
+        const angle = (i / n) * Math.PI * 2 + Math.PI / n;
+        const x = radius * Math.cos(angle);
+        const z = radius * Math.sin(angle);
+
+        const bar = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.05, 0.05, h, 8),
+          barMat
+        );
+        bar.position.set(x, 0, z);
+        scene.add(bar);
+      }
+
+      // 🔵 Flecha de peso
+      const arrow = new THREE.ArrowHelper(
+        new THREE.Vector3(0, -1, 0),
+        new THREE.Vector3(0, 1.1, 0),
+        1.5,
+        0x0000ff,
+        0.2,
+        0.1
+      );
+      scene.add(arrow);
 
       animate();
     }
@@ -276,8 +239,6 @@
       requestAnimationFrame(animate);
       renderer.render(scene, camera);
     }
-    let angleHorizontal = 0;
-    let angleVertical = 0;
 
     function rotarVista(direccion) {
       const radius = 5;
@@ -285,19 +246,16 @@
       if (direccion === "derecha") angleHorizontal += 0.1;
       if (direccion === "arriba") angleVertical = Math.min(angleVertical + 0.1, Math.PI / 2.5);
       if (direccion === "abajo") angleVertical = Math.max(angleVertical - 0.1, -Math.PI / 2.5);
-
       const x = radius * Math.sin(angleHorizontal) * Math.cos(angleVertical);
       const y = radius * Math.sin(angleVertical);
       const z = radius * Math.cos(angleHorizontal) * Math.cos(angleVertical);
-
       camera.position.set(x, y, z);
       camera.lookAt(0, 0, 0);
     }
-    let holdInterval = null;
 
-    function startHold(direccion) {
+    function startHold(dir) {
       if (holdInterval) return;
-      holdInterval = setInterval(() => rotarVista(direccion), 60); 
+      holdInterval = setInterval(() => rotarVista(dir), 50);
     }
 
     function stopHold() {
